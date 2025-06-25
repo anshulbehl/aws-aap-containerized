@@ -26,15 +26,25 @@ owner: >-
 env: >-
   {{ lookup('env', 'ENVIRONMENT') | default('dev', true) }}
 
+# Common tags applied to all AWS resources
+common_tags:
+  Owner: "{{ owner }}"
+  Environment: "{{ env }}"
+  Project: "AAP-Containerized"
+  ManagedBy: "Ansible"
+
 ### AAP Installer Variables
 installer_admin_pw: >-
   {{ lookup('env', 'INSTALLER_ADMIN_PW') | default('ansible123', true) }}
 installer_fqdn_hostname: >-
-  {{ lookup('env', 'INSTALLER_FQDN_HOSTNAME') | default('aap.example.org', true) }}
+  {{ lookup('env', 'INSTALLER_FQDN_HOSTNAME') |
+     default('aap.example.org', true) }}
 registry_username: >-
-  {{ lookup('env', 'INSTALLER_REGISTRY_USERNAME') | default('YOUR_USERNAME', true) }}
+  {{ lookup('env', 'INSTALLER_REGISTRY_USERNAME') |
+     default('YOUR_USERNAME', true) }}
 registry_password: >-
-  {{ lookup('env', 'INSTALLER_REGISTRY_PASSWORD') | default('YOUR_PASSWORD', true) }}
+  {{ lookup('env', 'INSTALLER_REGISTRY_PASSWORD') |
+     default('YOUR_PASSWORD', true) }}
 
 # Local setup bundle (pre-downloaded)
 setup_bundle: >-
@@ -42,10 +52,13 @@ setup_bundle: >-
 
 # AAP Components to include
 aap_include_controller: >-
-  {{ lookup('env', 'AAP_INCLUDE_CONTROLLER') | default('true', true) | bool }}
+  {{ lookup('env', 'AAP_INCLUDE_CONTROLLER') |
+     default('true', true) | bool }}
 aap_include_eda_controller: >-
-  {{ lookup('env', 'AAP_INCLUDE_EDA_CONTROLLER') | default('false', true) | bool }}
+  {{ lookup('env', 'AAP_INCLUDE_EDA_CONTROLLER') |
+     default('false', true) | bool }}
 aap_include_automation_hub: >-
-  {{ lookup('env', 'AAP_INCLUDE_AUTOMATION_HUB') | default('false', true) | bool }}
+  {{ lookup('env', 'AAP_INCLUDE_AUTOMATION_HUB') |
+     default('false', true) | bool }}
 
 # Note: Manifest files can be uploaded later through the AAP web interface
