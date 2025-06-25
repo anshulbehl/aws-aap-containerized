@@ -11,8 +11,7 @@ vim env-vars.sh                    # Update Red Hat registry credentials
 source env-vars.sh
 
 # 2. Install dependencies
-pip install -r requirements.txt
-ansible-galaxy collection install amazon.aws ansible.posix
+ansible-galaxy collection install -r requirements.yml
 
 # 3. Add AAP setup bundle
 # Place your AAP bundle in files/ directory:
