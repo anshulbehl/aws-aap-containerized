@@ -95,6 +95,9 @@ pip-delete-this-directory.txt
 ehthumbs.db
 Thumbs.db
 
+# Allow .gitkeep files to track empty directories
+!.gitkeep
+
 # Custom ignore patterns
 # Add your specific files here
 # Example:

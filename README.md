@@ -42,8 +42,7 @@ aws-aap-container/
 │   └── aap/
 │       ├── install.yml
 │       ├── pre-install.yml
-│       ├── post-install.yml
-│       └── ssl-cert-setup.yml
+│       └── post-install.yml
 └── files/                          # Place AAP bundle here
 ```
 
