@@ -1,10 +1,27 @@
 ---
 # Pre-installation tasks for AAP
-- name: Update system packages
+- name: Update system packages (with timeout)
   ansible.builtin.command:
-    cmd: dnf update -y
+    cmd: timeout 600 dnf update -y
   become: true
   changed_when: true
+  failed_when: false
+  register: system_update_result
+  when: skip_system_update | default(false) | bool == false
+
+- name: Display system update result
+  ansible.builtin.debug:
+    msg: |
+      System update status: {{ 'Completed' if system_update_result.rc == 0 else 'Timed out or failed (continuing anyway)' }}
+      {% if system_update_result.rc == 124 %}
+      Note: System update timed out after 10 minutes but installation will continue.
+      {% endif %}
+  when: skip_system_update | default(false) | bool == false and system_update_result is defined
+
+- name: Skip system update notification
+  ansible.builtin.debug:
+    msg: "System update skipped (skip_system_update=true)"
+  when: skip_system_update | default(false) | bool == true
 
 - name: Install required packages
   ansible.builtin.yum:

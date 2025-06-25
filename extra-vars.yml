@@ -61,4 +61,14 @@ aap_include_automation_hub: >-
   {{ lookup('env', 'AAP_INCLUDE_AUTOMATION_HUB') |
      default('false', true) | bool }}
 
+# Installation Options
+skip_system_update: >-
+  {{ lookup('env', 'SKIP_SYSTEM_UPDATE') |
+     default('false', true) | bool }}
+
+# AAP Installer Directory (where the extracted bundle is located)
+installer_directory: >-
+  {{ lookup('env', 'INSTALLER_DIRECTORY') |
+     default('/tmp/ansible-automation-platform-containerized-setup', true) }}
+
 # Note: Manifest files can be uploaded later through the AAP web interface

@@ -109,12 +109,34 @@
         wait_timeout: 600
       register: ec2
 
+    - name: Debug EC2 instance structure
+      ansible.builtin.debug:
+        var: ec2
+      when: ec2 is defined
+
     - name: Set instance facts safely
       ansible.builtin.set_fact:
         instance_id: "{{ ec2.instances[0].instance_id }}"
-        public_ip: "{{ ec2.instances[0].public_ip_address }}"
-        private_ip: "{{ ec2.instances[0].private_ip_address }}"
-        public_dns: "{{ ec2.instances[0].public_dns_name | default('') }}"
+        public_ip: "{{ ec2.instances[0].network_interfaces[0].association.public_ip | default(ec2.instances[0].public_ip_address) | default('') }}"
+        private_ip: "{{ ec2.instances[0].private_ip_address | default(ec2.instances[0].network_interfaces[0].private_ip_address) }}"
+        public_dns: "{{ ec2.instances[0].public_dns_name | default(ec2.instances[0].network_interfaces[0].association.public_dns_name) | default('') }}"
+
+    - name: Wait for public IP to be assigned (if needed)
+      amazon.aws.ec2_instance_info:
+        instance_ids:
+          - "{{ instance_id }}"
+        region: "{{ aws_region }}"
+      register: instance_info
+      until: instance_info.instances[0].network_interfaces[0].association.public_ip is defined
+      retries: 30
+      delay: 10
+      when: public_ip == ''
+
+    - name: Update public IP from instance info if needed
+      ansible.builtin.set_fact:
+        public_ip: "{{ instance_info.instances[0].network_interfaces[0].association.public_ip }}"
+        public_dns: "{{ instance_info.instances[0].network_interfaces[0].association.public_dns_name | default('') }}"
+      when: public_ip == '' and instance_info is defined
 
     - name: Wait for SSH to become available
       ansible.builtin.wait_for:
