@@ -25,15 +25,35 @@
 
     - name: Run AAP containerized installer
       ansible.builtin.shell: |
+        set -o pipefail
         cd {{ installer_directory }}
+        timeout 1800 bash -c "
+        set -o pipefail
         ANSIBLE_COLLECTIONS_PATH={{ installer_directory }}/collections \
         ansible-playbook -v -i inventory.custom \
-        ansible.containerized_installer.install
+        ansible.containerized_installer.install 2>&1 | tee aap_install.log
+        exit_code=\${PIPESTATUS[0]}
+        echo \"Installation completed with exit code: \$exit_code\"
+        exit \$exit_code
+        "
       environment:
         ANSIBLE_HOST_KEY_CHECKING: 'False'
       become: false
       register: installation_result
       changed_when: installation_result.rc == 0
+      failed_when: >-
+        installation_result.rc != 0 and installation_result.rc != 124
+      async: 2400  # 40 minutes max
+      poll: 30     # Check every 30 seconds
+      timeout: 2400
+
+    - name: Show installation timeout warning
+      ansible.builtin.debug:
+        msg: |
+          WARNING: Installation timed out after 30 minutes.
+          Check the installation logs manually on the target host.
+          Path: {{ installer_directory }}/aap_install.log
+      when: installation_result is defined and installation_result.rc == 124
 
     - name: Show installation status
       ansible.builtin.debug:
@@ -42,10 +62,14 @@
 
     - name: Show installation failure
       ansible.builtin.debug:
-        msg: "AAP installation failed. Check logs for details."
-      when: installation_result is defined and installation_result.rc != 0
+        msg: |
+          AAP installation failed with exit code: {{ installation_result.rc }}
+          Check logs: {{ installer_directory }}/aap_install.log
+      when: >-
+        installation_result is defined and installation_result.rc != 0
+        and installation_result.rc != 124
 
-    # Run post-installation tasks
+    # Run post-installation tasks only on success
     - name: Import post-installation tasks
       ansible.builtin.import_tasks: tasks/post-install.yml
       when: installation_result is defined and installation_result.rc == 0
@@ -53,19 +77,38 @@
   post_tasks:
     - name: Display completion message
       ansible.builtin.debug:
-        msg: |
-          ANSIBLE AUTOMATION PLATFORM INSTALLATION COMPLETE!
+        msg:
+          - "========================================================"
+          - "ANSIBLE AUTOMATION PLATFORM INSTALLATION COMPLETE!"
+          - "========================================================"
+          - ""
+          - "Access Your AAP Instance:"
+          - "   Web Interface: https://{{ ansible_host }}"
+          - "   API Endpoint: https://{{ ansible_host }}/api/gateway/v1/"
+          - ""
+          - "Login Credentials:"
+          - "   Username: admin"
+          - "   Password: {{ installer_admin_pw }}"
+          - ""
+          - "Next Steps:"
+          - "   1. Access the web interface"
+          - "   2. Change the default admin password"
+          - "   3. Upload subscription manifest (Administration -> Subscription)"
+          - "   4. Configure organizations, users, and projects"
+          - "========================================================"
+      when: installation_result is defined and installation_result.rc == 0
 
-          Access Your AAP Instance:
-             Web Interface: https://{{ ansible_host }}
-             API Endpoint: https://{{ ansible_host }}/api/gateway/v1/
-
-          Login Credentials:
-             Username: admin
-             Password: {{ installer_admin_pw }}
-
-          Next Steps:
-             1. Access the web interface
-             2. Change the default admin password
-             3. Upload subscription manifest (Administration → Subscription)
-             4. Configure organizations, users, and projects
+    - name: Display failure message
+      ansible.builtin.debug:
+        msg:
+          - "========================================================"
+          - "ANSIBLE AUTOMATION PLATFORM INSTALLATION FAILED!"
+          - "========================================================"
+          - ""
+          - "Troubleshooting:"
+          - "   1. Check logs: {{ installer_directory }}/aap_install.log"
+          - "   2. Verify system requirements are met"
+          - "   3. Check network connectivity"
+          - "   4. Review error messages above"
+          - "========================================================"
+      when: installation_result is defined and installation_result.rc != 0

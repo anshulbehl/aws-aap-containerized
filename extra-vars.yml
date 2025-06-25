@@ -28,7 +28,7 @@ env: >-
 
 # Common tags applied to all AWS resources
 common_tags:
-  Owner: "{{ owner }}"
+  owner: "{{ owner }}"
   Environment: "{{ env }}"
   Project: "AAP-Containerized"
   ManagedBy: "Ansible"
