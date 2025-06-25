@@ -1,0 +1,102 @@
+# Ansible Automation Platform Setup Bundle
+files/ansible-automation-platform-*.tar.gz
+files/*.tar.gz
+files/*.zip
+files/*.gpg
+
+# SSH Keys and Certificates
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+files/*-key.pem
+files/*.key
+
+# Generated Inventory and Instance Information
+inventory/hosts.yml
+inventory/hosts
+files/*-info.txt
+files/instance-*.txt
+
+# Environment and Configuration Files - CRITICAL
+.env
+.env.*
+env-vars.sh
+set_env.sh
+*.env
+**/secrets.*
+**/credentials.*
+
+# Generated Files from Infrastructure Creation
+files/*-key.pem
+files/*-info.txt
+
+# Ansible Generated Files
+files/generated-*
+*.retry
+.ansible/
+ansible.cfg
+
+# Log Files
+*.log
+**/*.log
+logs/
+
+# Temporary Files
+*.tmp
+*.temp
+*~
+.DS_Store
+Thumbs.db
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python Virtual Environment
+venv/
+env/
+.venv/
+.env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Terraform State (if used)
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# AWS CLI Credentials
+.aws/credentials
+.aws/config
+
+# Backup Files
+*.bak
+*.backup
+*.old
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Custom ignore patterns
+# Add your specific files here
+# Example:
+# my-custom-secrets.yml
+# local-override.yml 

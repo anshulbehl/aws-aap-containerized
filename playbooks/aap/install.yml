@@ -1,0 +1,71 @@
+---
+- name: AAP Containerized Installation
+  hosts: aap_nodes
+  become: true
+  gather_facts: true
+  vars_files:
+    - "{{ project_root | default(playbook_dir + '/../..') }}/extra-vars.yml"
+  pre_tasks:
+    - name: Show installation starting
+      ansible.builtin.debug:
+        msg: |
+          Starting AAP Installation on {{ inventory_hostname }}
+          Target: {{ installer_fqdn_hostname }}
+          Components: Controller={{ aap_include_controller }}, EDA={{ aap_include_eda_controller }}, Hub={{ aap_include_automation_hub }}
+
+  tasks:
+    # Run pre-installation tasks
+    - name: Import pre-installation tasks
+      ansible.builtin.import_tasks: tasks/pre-install.yml
+
+    # Execute AAP installation
+    - name: Show installation progress
+      ansible.builtin.debug:
+        msg: "Running AAP installer (this may take 10-15 minutes)..."
+
+    - name: Run AAP containerized installer
+      ansible.builtin.shell: |
+        cd {{ installer_directory }}
+        ANSIBLE_COLLECTIONS_PATH={{ installer_directory }}/collections \
+        ansible-playbook -v -i inventory.custom \
+        ansible.containerized_installer.install
+      environment:
+        ANSIBLE_HOST_KEY_CHECKING: 'False'
+      become: false
+      register: installation_result
+      changed_when: installation_result.rc == 0
+
+    - name: Show installation status
+      ansible.builtin.debug:
+        msg: "AAP installation completed successfully!"
+      when: installation_result is defined and installation_result.rc == 0
+
+    - name: Show installation failure
+      ansible.builtin.debug:
+        msg: "AAP installation failed. Check logs for details."
+      when: installation_result is defined and installation_result.rc != 0
+
+    # Run post-installation tasks
+    - name: Import post-installation tasks
+      ansible.builtin.import_tasks: tasks/post-install.yml
+      when: installation_result is defined and installation_result.rc == 0
+
+  post_tasks:
+    - name: Display completion message
+      ansible.builtin.debug:
+        msg: |
+          ANSIBLE AUTOMATION PLATFORM INSTALLATION COMPLETE!
+
+          Access Your AAP Instance:
+             Web Interface: https://{{ ansible_host }}
+             API Endpoint: https://{{ ansible_host }}/api/gateway/v1/
+
+          Login Credentials:
+             Username: admin
+             Password: {{ installer_admin_pw }}
+
+          Next Steps:
+             1. Access the web interface
+             2. Change the default admin password
+             3. Upload subscription manifest (Administration → Subscription)
+             4. Configure organizations, users, and projects

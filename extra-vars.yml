@@ -1,0 +1,51 @@
+---
+### AWS Infrastructure Variables
+aws_region: >-
+  {{ lookup('env', 'AWS_REGION') | default('us-east-1', true) }}
+aws_availability_zone: >-
+  {{ lookup('env', 'AWS_AZ') | default('us-east-1a', true) }}
+instance_type: >-
+  {{ lookup('env', 'AWS_INSTANCE_TYPE') | default('t3.xlarge', true) }}
+instance_name: >-
+  {{ lookup('env', 'INSTANCE_NAME') | default('aap-containerized', true) }}
+volume_size: >-
+  {{ lookup('env', 'AWS_VOLUME_SIZE') | default('40', true) }}
+# RHEL 9 in us-east-1
+ami_id: >-
+  {{ lookup('env', 'AWS_AMI_ID') | default('ami-0fe630eb857a6ec83', true) }}
+
+# Network Settings
+vpc_cidr: >-
+  {{ lookup('env', 'VPC_CIDR') | default('10.0.0.0/16', true) }}
+subnet_cidr: >-
+  {{ lookup('env', 'SUBNET_CIDR') | default('10.0.1.0/24', true) }}
+
+# Tags
+owner: >-
+  {{ lookup('env', 'OWNER') | default('demo-user', true) }}
+env: >-
+  {{ lookup('env', 'ENVIRONMENT') | default('dev', true) }}
+
+### AAP Installer Variables
+installer_admin_pw: >-
+  {{ lookup('env', 'INSTALLER_ADMIN_PW') | default('ansible123', true) }}
+installer_fqdn_hostname: >-
+  {{ lookup('env', 'INSTALLER_FQDN_HOSTNAME') | default('aap.example.org', true) }}
+registry_username: >-
+  {{ lookup('env', 'INSTALLER_REGISTRY_USERNAME') | default('YOUR_USERNAME', true) }}
+registry_password: >-
+  {{ lookup('env', 'INSTALLER_REGISTRY_PASSWORD') | default('YOUR_PASSWORD', true) }}
+
+# Local setup bundle (pre-downloaded)
+setup_bundle: >-
+  ansible-automation-platform-containerized-setup-bundle-2.5-15.1-x86_64.tar.gz
+
+# AAP Components to include
+aap_include_controller: >-
+  {{ lookup('env', 'AAP_INCLUDE_CONTROLLER') | default('true', true) | bool }}
+aap_include_eda_controller: >-
+  {{ lookup('env', 'AAP_INCLUDE_EDA_CONTROLLER') | default('false', true) | bool }}
+aap_include_automation_hub: >-
+  {{ lookup('env', 'AAP_INCLUDE_AUTOMATION_HUB') | default('false', true) | bool }}
+
+# Note: Manifest files can be uploaded later through the AAP web interface

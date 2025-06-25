@@ -1,0 +1,126 @@
+---
+# AAP Post-installation Tasks
+# This file contains tasks to configure and verify AAP after installation
+
+- name: Wait for AAP services to be ready
+  ansible.builtin.wait_for:
+    port: 443
+    host: "{{ installer_fqdn_hostname }}"
+    delay: 30
+    timeout: 600
+
+- name: Check AAP Gateway API status
+  ansible.builtin.uri:
+    url: "https://{{ installer_fqdn_hostname }}/api/gateway/v1/"
+    method: GET
+    user: "admin"
+    password: "{{ installer_admin_pw }}"
+    force_basic_auth: true
+    validate_certs: false
+  register: api_check
+  retries: 12
+  delay: 30
+  until: api_check.status == 200
+
+- name: Display API ping results
+  ansible.builtin.debug:
+    msg: "AAP Gateway API is responding: {{ api_check.status }}"
+
+- name: Get AAP Gateway version information
+  ansible.builtin.uri:
+    url: "https://{{ installer_fqdn_hostname }}/api/gateway/v1/"
+    method: GET
+    user: "admin"
+    password: "{{ installer_admin_pw }}"
+    force_basic_auth: true
+    validate_certs: false
+  register: aap_version_info
+  ignore_errors: true
+
+- name: Configure AAP Gateway base URL
+  ansible.builtin.uri:
+    url: "https://{{ installer_fqdn_hostname }}/api/gateway/v1/"
+    method: GET
+    user: "admin"
+    password: "{{ installer_admin_pw }}"
+    force_basic_auth: true
+    validate_certs: false
+  register: config_result
+  retries: 3
+  delay: 10
+
+- name: Update installation info with final status
+  ansible.builtin.lineinfile:
+    path: "/opt/aap-install-info.txt"
+    line: "installation_status=completed"
+    create: true
+
+- name: Get current timestamp for completion
+  ansible.builtin.set_fact:
+    completion_timestamp: "{{ ansible_date_time.iso8601 }}"
+
+- name: Update installation info with completion timestamp
+  ansible.builtin.lineinfile:
+    path: "/opt/aap-install-info.txt"
+    line: "completion_timestamp={{ completion_timestamp }}"
+
+- name: Update installation info with AAP version (if available)
+  ansible.builtin.lineinfile:
+    path: "/opt/aap-install-info.txt"
+    line: "aap_runtime_version={{ aap_version_info.json.version | default('Unknown') }}"
+  when: aap_version_info is defined and aap_version_info.json is defined
+
+- name: Save final installation status in JSON
+  ansible.builtin.copy:
+    content: |
+      {
+        "aap_final_status": {
+          "installation_status": "completed",
+          "completion_timestamp": "{{ completion_timestamp }}",
+          "aap_runtime_version": "{{ aap_version_info.json.version | default('Unknown') }}",
+          "api_endpoint": "https://{{ installer_fqdn_hostname }}/api/gateway/v1/",
+          "web_interface": "https://{{ installer_fqdn_hostname }}",
+          "admin_username": "admin"
+        }
+      }
+    dest: "/opt/aap/final-status.json"
+    mode: '0644'
+  when: aap_version_info is defined
+
+- name: Clean up temporary files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/ansible-automation-platform-containerized-setup-bundle-*.tar.gz
+  ignore_errors: true
+
+- name: Display comprehensive installation summary
+  ansible.builtin.debug:
+    msg: |
+      ========================================
+      AAP Installation Summary
+      ========================================
+
+      Status: COMPLETED
+      Runtime Version: {{ aap_version_info.json.version | default('Unknown') }}
+      Completion Time: {{ completion_timestamp }}
+
+      Access URLs:
+      - Web Interface: https://{{ installer_fqdn_hostname }}
+      - API Endpoint: https://{{ installer_fqdn_hostname }}/api/gateway/v1/
+
+      Login Credentials:
+      - Username: admin
+      - Password: {{ installer_admin_pw }}
+
+      Installation Files:
+      - /opt/aap-install-info.txt
+      - /opt/aap/install-info.json
+      - /opt/aap/final-status.json
+
+      Next Steps:
+      1. Change the default admin password
+      2. Configure your organization settings
+      3. Upload any additional licenses if needed
+      ========================================

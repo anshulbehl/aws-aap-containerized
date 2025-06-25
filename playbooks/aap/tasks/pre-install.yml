@@ -1,0 +1,147 @@
+---
+# Pre-installation tasks for AAP
+- name: Update system packages
+  ansible.builtin.command:
+    cmd: dnf update -y
+  become: true
+  changed_when: true
+
+- name: Install required packages
+  ansible.builtin.yum:
+    name:
+      - podman
+      - python3-pip
+      - rsync
+      - tar
+      - unzip
+      - ansible-core
+    state: present
+  become: true
+
+- name: Set the system hostname for the AAP installer
+  become: true
+  ansible.builtin.command: >-
+    hostnamectl set-hostname {{ installer_fqdn_hostname }}
+
+- name: Add entry to /etc/hosts for {{ installer_fqdn_hostname }}
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    line: "127.0.0.1 {{ installer_fqdn_hostname }}"
+    state: present
+    create: true
+    backup: true
+  become: true
+
+- name: Find AAP setup bundle in files directory
+  ansible.builtin.find:
+    paths: "{{ playbook_dir }}/../../files"
+    patterns: "*ansible-automation-platform-containerized-setup-bundle*.tar.gz"
+    file_type: file
+  delegate_to: localhost
+  become: false
+  register: bundle_files
+
+- name: Validate bundle detection
+  ansible.builtin.fail:
+    msg: "{{ error_msg }}"
+  vars:
+    error_msg: >-
+      {% if bundle_files.files | length == 0 %}
+      No AAP setup bundle found in files/ directory.
+      Expected pattern:
+      *ansible-automation-platform-containerized-setup-bundle*.tar.gz
+      {% elif bundle_files.files | length > 1 %}
+      Multiple AAP setup bundles found in files/ directory:
+      {% for file in bundle_files.files %}
+      - {{ file.path | basename }}
+      {% endfor %}
+      Please keep only one bundle file.
+      {% endif %}
+  when: bundle_files.files | length != 1
+
+- name: Set bundle facts
+  ansible.builtin.set_fact:
+    bundle_file: "{{ bundle_files.files[0] }}"
+    bundle_filename: "{{ bundle_files.files[0].path | basename }}"
+
+- name: Extract version from bundle filename
+  ansible.builtin.set_fact:
+    extracted_version: "{{ bundle_filename | regex_replace('.*-([0-9]+\\.[0-9]+-[0-9]+\\.[0-9]+)-.*', '\\1') }}"
+
+- name: Display bundle information
+  ansible.builtin.debug:
+    msg: |
+      Found AAP setup bundle: {{ bundle_filename }}
+      Extracted version: {{ extracted_version }}
+      Bundle size: {{ (bundle_file.size / 1024 / 1024) | round(1) }} MB
+
+- name: Check if bundle already exists on target
+  ansible.builtin.stat:
+    path: "/tmp/{{ bundle_filename }}"
+  register: remote_bundle
+
+- name: Copy AAP setup bundle to target (if not exists or different size)
+  ansible.builtin.copy:
+    src: "{{ bundle_file.path }}"
+    dest: "/tmp/{{ bundle_filename }}"
+    mode: '0644'
+  when: >-
+    not remote_bundle.stat.exists or
+    remote_bundle.stat.size != bundle_file.size
+
+- name: Set extracted directory name
+  ansible.builtin.set_fact:
+    extracted_dir_name: "{{ bundle_filename | regex_replace('.tar.gz$', '') }}"
+
+- name: Check if bundle is already extracted
+  ansible.builtin.stat:
+    path: "/tmp/{{ extracted_dir_name }}"
+  register: extracted_bundle
+
+- name: Extract setup bundle (if not already extracted)
+  ansible.builtin.unarchive:
+    src: "/tmp/{{ bundle_filename }}"
+    dest: /tmp
+    remote_src: true
+    creates: "/tmp/{{ extracted_dir_name }}"
+  when: not extracted_bundle.stat.exists
+
+- name: Create symlink to extracted bundle directory
+  ansible.builtin.file:
+    src: "/tmp/{{ extracted_dir_name }}"
+    dest: "/tmp/ansible-automation-platform-containerized-setup"
+    state: link
+    force: true
+
+- name: Set proper ownership of extracted files
+  ansible.builtin.file:
+    path: "/tmp/{{ extracted_dir_name }}"
+    owner: ec2-user
+    group: ec2-user
+    recurse: true
+    state: directory
+  become: true
+
+- name: Create installation metadata
+  ansible.builtin.copy:
+    content: |
+      # AAP Installation Metadata
+      Bundle File: {{ bundle_filename }}
+      Bundle Version: {{ extracted_version }}
+      Installation Start: {{ ansible_date_time.iso8601 }}
+      Target Host: {{ inventory_hostname }}
+      Target IP: {{ ansible_default_ipv4.address | default('N/A') }}
+    dest: "/tmp/aap_install_metadata_{{ ansible_date_time.date }}.txt"
+    mode: '0644'
+
+- name: Check if installer directory exists
+  ansible.builtin.stat:
+    path: "{{ installer_directory }}"
+  register: installer_dir
+
+- name: Generate AAP installer inventory
+  ansible.builtin.template:
+    src: "{{ project_root | default(playbook_dir + '/../..') }}/playbooks/aap/templates/inventory.j2"
+    dest: "{{ installer_directory }}/inventory.custom"
+    mode: '0644'
+  when: installer_dir.stat.exists

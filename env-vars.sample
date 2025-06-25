@@ -1,0 +1,93 @@
+#!/bin/bash
+# Sample Environment Variables for AWS AAP Container Installation
+# Copy this file to 'env-vars.sh' and update with your actual values
+# Usage: source env-vars.sh
+
+#=============================================================================
+# AWS CONFIGURATION
+#=============================================================================
+
+# AWS Region (choose your preferred region)
+export AWS_REGION="us-east-1"
+
+# AWS Credentials (ensure your AWS CLI is configured or set these)
+# export AWS_ACCESS_KEY_ID="your-access-key-here"
+# export AWS_SECRET_ACCESS_KEY="your-secret-key-here"
+
+# EC2 Instance Configuration
+export INSTANCE_NAME="your-username-aap-containerized"  # e.g., "jdoe-aap-containerized"
+export INSTANCE_TYPE="t3.xlarge"                        # Minimum recommended for AAP
+export OWNER="your-username"                            # e.g., "jdoe" (for AWS tagging)
+
+#=============================================================================
+# AAP INSTALLATION CONFIGURATION
+#=============================================================================
+
+# Red Hat Registry Credentials (Required for AAP installation)
+# Get these from: https://access.redhat.com/RegistryAuthentication
+export REDHAT_REGISTRY_USERNAME="your-redhat-username"
+export REDHAT_REGISTRY_PASSWORD="your-redhat-password"
+
+# AAP Admin Configuration
+export INSTALLER_ADMIN_PASSWORD="your-secure-admin-password"  # Change this!
+export INSTALLER_FQDN_HOSTNAME="aap.example.org"
+
+# AAP Components to Install (true/false)
+export AAP_INCLUDE_CONTROLLER="true"        # Ansible Controller
+export AAP_INCLUDE_EDA_CONTROLLER="false"   # Event-Driven Ansible
+export AAP_INCLUDE_AUTOMATION_HUB="false"   # Automation Hub
+
+# Database Configuration (for production, consider external DB)
+export AAP_DATABASE_HOST="localhost"
+export AAP_DATABASE_NAME="awx"
+export AAP_DATABASE_USERNAME="awx"
+export AAP_DATABASE_PASSWORD="your-db-password"
+
+# Cache Configuration (Redis)
+export AAP_CACHE_HOST="localhost"
+export AAP_CACHE_PASSWORD="your-cache-password"
+
+#=============================================================================
+# SETUP BUNDLE CONFIGURATION
+#=============================================================================
+
+# Setup bundles are now automatically detected from the files/ directory
+# Simply place your AAP setup bundle in files/ and it will be used automatically
+# Download from: https://access.redhat.com/downloads/content/480/
+# Expected pattern: ansible-automation-platform-containerized-setup-bundle-*.tar.gz
+
+#=============================================================================
+# OPTIONAL CONFIGURATION
+#=============================================================================
+
+# SSH Key Name (auto-generated if not specified)
+# export SSH_KEY_NAME="my-existing-key"
+
+# Custom VPC CIDR (optional)
+# export VPC_CIDR="10.0.0.0/16"
+
+# Custom Subnet CIDR (optional)
+# export SUBNET_CIDR="10.0.1.0/24"
+
+#=============================================================================
+# VERIFICATION
+#=============================================================================
+
+echo "Environment variables set for AAP installation:"
+echo "- AWS Region: ${AWS_REGION}"
+echo "- Instance Name: ${INSTANCE_NAME}"
+echo "- Instance Type: ${INSTANCE_TYPE}"
+echo "- Owner: ${OWNER}"
+echo "- FQDN: ${INSTALLER_FQDN_HOSTNAME}"
+echo "- Controller: ${AAP_INCLUDE_CONTROLLER}"
+echo "- EDA: ${AAP_INCLUDE_EDA_CONTROLLER}"
+echo "- Hub: ${AAP_INCLUDE_AUTOMATION_HUB}"
+echo ""
+echo "Red Hat Registry configured: $([ -n "${REDHAT_REGISTRY_USERNAME}" ] && echo "✓" || echo "✗")"
+echo "Admin password set: $([ -n "${INSTALLER_ADMIN_PASSWORD}" ] && echo "✓" || echo "✗")"
+echo ""
+echo "Next steps:"
+echo "1. Update this file with your actual values"
+echo "2. Place setup bundle in files/ directory"
+echo "3. Run: source env-vars.sh"
+echo "4. Run: ansible-playbook playbooks/deploy-aap.yml" 
