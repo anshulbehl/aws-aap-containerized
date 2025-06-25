@@ -26,6 +26,8 @@ ansible-playbook playbooks/deploy-aap.yml
 
 - Python 3.8+ with Ansible Core 2.14+
 - AWS CLI configured with credentials
+- AWS Access Key ID and Secret Access Key (with EC2, VPC, and IAM permissions)
+- AWS Session Token (if using temporary credentials)
 - Red Hat subscription with registry access
 - AAP containerized setup bundle
 
